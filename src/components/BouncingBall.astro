@@ -61,6 +61,54 @@
   let isDragging = false;
   let mousePos = { x: 0, y: 0 };
 
+  // 粒子效果
+  interface Particle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
+    alpha: number;
+  }
+
+  const particles: Particle[] = [];
+  const PARTICLE_COUNT = 30;
+
+  // 初始化粒子
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      size: Math.random() * 2 + 1,
+      alpha: Math.random() * 0.5 + 0.2
+    });
+  }
+
+  /**
+   * 更新和绘制粒子
+   */
+  function updateParticles(): void {
+    particles.forEach(particle => {
+      // 更新位置
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+
+      // 边界检测 - 循环
+      if (particle.x < 0) particle.x = canvas.width;
+      if (particle.x > canvas.width) particle.x = 0;
+      if (particle.y < 0) particle.y = canvas.height;
+      if (particle.y > canvas.height) particle.y = 0;
+
+      // 绘制粒子
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${particle.alpha})`;
+      ctx.fill();
+    });
+  }
+
   /**
    * 获取六边形的顶点坐标（考虑旋转）
    * @returns 六边形6个顶点的坐标数组
@@ -313,6 +361,9 @@
     // 更新六边形旋转
     hexagonRotation += rotationSpeed;
 
+    // 绘制粒子效果
+    updateParticles();
+
     // 绘制
     drawHexagon();
     updatePhysics();
@@ -397,6 +448,12 @@
     canvas.height = window.innerHeight;
     hexagonCenter.x = canvas.width / 2;
     hexagonCenter.y = canvas.height / 2;
+    
+    // 重新初始化粒子位置
+    particles.forEach(particle => {
+      if (particle.x > canvas.width) particle.x = Math.random() * canvas.width;
+      if (particle.y > canvas.height) particle.y = Math.random() * canvas.height;
+    });
   });
 
   // 启动动画
