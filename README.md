@@ -1,3 +1,5 @@
+[English](./README-EN.md) | 简体中文
+
 # Astro Hexagon
 
 一个基于 Astro 的可视化交互实验：在旋转的六边形中模拟一颗受重力作用的弹跳小球。项目演示了如何在 Astro 中结合 Canvas、物理模拟与多端交互事件。
