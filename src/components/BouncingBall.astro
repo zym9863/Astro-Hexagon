@@ -1,0 +1,322 @@
+---
+// 旋转六边形内弹跳小球组件
+---
+
+<canvas id="hexagonCanvas"></canvas>
+
+<style>
+  #hexagonCanvas {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: grab;
+  }
+
+  #hexagonCanvas:active {
+    cursor: grabbing;
+  }
+</style>
+
+<script>
+  // 获取 Canvas 元素和上下文
+  const canvas = document.getElementById('hexagonCanvas') as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+
+  // 设置 Canvas 尺寸
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // 物理常量
+  const GRAVITY = 0.5; // 重力加速度
+  const FRICTION = 0.98; // 摩擦系数（能量损失）
+  const BOUNCE_DAMPING = 0.8; // 反弹阻尼
+
+  // 六边形参数
+  const hexagonRadius = Math.min(canvas.width, canvas.height) * 0.3;
+  const hexagonCenter = { x: canvas.width / 2, y: canvas.height / 2 };
+  let hexagonRotation = 0;
+  const rotationSpeed = 0.01; // 旋转速度
+
+  // 小球参数
+  const ball = {
+    x: hexagonCenter.x,
+    y: hexagonCenter.y - hexagonRadius * 0.5,
+    radius: 15,
+    vx: 2, // x方向速度
+    vy: 0, // y方向速度
+    color: '#FFD700'
+  };
+
+  // 鼠标交互状态
+  let isDragging = false;
+  let mousePos = { x: 0, y: 0 };
+
+  /**
+   * 获取六边形的顶点坐标（考虑旋转）
+   * @returns 六边形6个顶点的坐标数组
+   */
+  function getHexagonVertices(): { x: number; y: number }[] {
+    const vertices = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = hexagonRotation + (Math.PI / 3) * i;
+      vertices.push({
+        x: hexagonCenter.x + hexagonRadius * Math.cos(angle),
+        y: hexagonCenter.y + hexagonRadius * Math.sin(angle)
+      });
+    }
+    return vertices;
+  }
+
+  /**
+   * 绘制六边形
+   */
+  function drawHexagon(): void {
+    const vertices = getHexagonVertices();
+
+    ctx.beginPath();
+    ctx.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < 6; i++) {
+      ctx.lineTo(vertices[i].x, vertices[i].y);
+    }
+    ctx.closePath();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // 绘制半透明填充
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fill();
+  }
+
+  /**
+   * 绘制小球
+   */
+  function drawBall(): void {
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = ball.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 添加高光效果
+    const gradient = ctx.createRadialGradient(
+      ball.x - ball.radius * 0.3,
+      ball.y - ball.radius * 0.3,
+      0,
+      ball.x,
+      ball.y,
+      ball.radius
+    );
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fill();
+  }
+
+  /**
+   * 计算点到线段的距离和最近点
+   * @param point 点坐标
+   * @param lineStart 线段起点
+   * @param lineEnd 线段终点
+   * @returns 距离和最近点
+   */
+  function pointToLineDistance(
+    point: { x: number; y: number },
+    lineStart: { x: number; y: number },
+    lineEnd: { x: number; y: number }
+  ): { distance: number; closestPoint: { x: number; y: number }; t: number } {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
+    const lengthSquared = dx * dx + dy * dy;
+
+    let t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lengthSquared;
+    t = Math.max(0, Math.min(1, t));
+
+    const closestPoint = {
+      x: lineStart.x + t * dx,
+      y: lineStart.y + t * dy
+    };
+
+    const distance = Math.sqrt(
+      Math.pow(point.x - closestPoint.x, 2) + Math.pow(point.y - closestPoint.y, 2)
+    );
+
+    return { distance, closestPoint, t };
+  }
+
+  /**
+   * 检测并处理碰撞
+   */
+  function handleCollisions(): void {
+    const vertices = getHexagonVertices();
+
+    // 检查每条边
+    for (let i = 0; i < 6; i++) {
+      const v1 = vertices[i];
+      const v2 = vertices[(i + 1) % 6];
+
+      const { distance, closestPoint } = pointToLineDistance(ball, v1, v2);
+
+      // 如果球与边碰撞
+      if (distance < ball.radius) {
+        // 计算法线方向（从碰撞点指向球心）
+        const normalX = ball.x - closestPoint.x;
+        const normalY = ball.y - closestPoint.y;
+        const normalLength = Math.sqrt(normalX * normalX + normalY * normalY);
+
+        if (normalLength === 0) continue;
+
+        const nx = normalX / normalLength;
+        const ny = normalY / normalLength;
+
+        // 将球移出碰撞区域
+        const overlap = ball.radius - distance;
+        ball.x += nx * overlap;
+        ball.y += ny * overlap;
+
+        // 计算速度在法线方向的分量
+        const dotProduct = ball.vx * nx + ball.vy * ny;
+
+        // 只有当球正在向墙壁移动时才反弹
+        if (dotProduct < 0) {
+          // 反弹：反射速度向量
+          ball.vx -= 2 * dotProduct * nx;
+          ball.vy -= 2 * dotProduct * ny;
+
+          // 应用阻尼和摩擦
+          ball.vx *= BOUNCE_DAMPING;
+          ball.vy *= BOUNCE_DAMPING;
+        }
+      }
+    }
+  }
+
+  /**
+   * 更新物理状态
+   */
+  function updatePhysics(): void {
+    if (isDragging) {
+      // 拖拽时，球跟随鼠标，速度归零
+      ball.x = mousePos.x;
+      ball.y = mousePos.y;
+      ball.vx = 0;
+      ball.vy = 0;
+    } else {
+      // 应用重力
+      ball.vy += GRAVITY;
+
+      // 应用摩擦
+      ball.vx *= FRICTION;
+      ball.vy *= FRICTION;
+
+      // 更新位置
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      // 检测碰撞
+      handleCollisions();
+    }
+  }
+
+  /**
+   * 动画循环
+   */
+  function animate(): void {
+    // 清空画布
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 更新六边形旋转
+    hexagonRotation += rotationSpeed;
+
+    // 绘制
+    drawHexagon();
+    updatePhysics();
+    drawBall();
+
+    // 继续动画
+    requestAnimationFrame(animate);
+  }
+
+  /**
+   * 检查点是否在球内
+   */
+  function isPointInBall(x: number, y: number): boolean {
+    const dx = x - ball.x;
+    const dy = y - ball.y;
+    return Math.sqrt(dx * dx + dy * dy) <= ball.radius;
+  }
+
+  // 鼠标事件处理
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (isPointInBall(x, y)) {
+      isDragging = true;
+      mousePos = { x, y };
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      const rect = canvas.getBoundingClientRect();
+      mousePos = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    isDragging = false;
+  });
+
+  // 触摸事件支持
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    if (isPointInBall(x, y)) {
+      isDragging = true;
+      mousePos = { x, y };
+    }
+  });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (isDragging) {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      mousePos = {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    }
+  });
+
+  canvas.addEventListener('touchend', () => {
+    isDragging = false;
+  });
+
+  // 窗口大小调整处理
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    hexagonCenter.x = canvas.width / 2;
+    hexagonCenter.y = canvas.height / 2;
+  });
+
+  // 启动动画
+  animate();
+</script>
