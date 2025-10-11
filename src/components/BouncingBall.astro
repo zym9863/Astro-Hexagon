@@ -8,12 +8,22 @@
   #hexagonCanvas {
     display: block;
     margin: 0 auto;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    animation: gradientShift 10s ease infinite;
     cursor: grab;
   }
 
   #hexagonCanvas:active {
     cursor: grabbing;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    }
+    50% {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #43e97b 100%);
+    }
   }
 </style>
 
@@ -80,29 +90,68 @@
     }
     ctx.closePath();
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 4;
+    // 添加阴影效果
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // 绘制白色发光边框
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 5;
     ctx.stroke();
 
+    // 重置阴影
+    ctx.shadowBlur = 0;
+
     // 绘制半透明填充
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.fill();
+
+    // 添加内部边框发光效果
+    ctx.beginPath();
+    ctx.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < 6; i++) {
+      ctx.lineTo(vertices[i].x, vertices[i].y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   /**
    * 绘制小球
    */
   function drawBall(): void {
+    // 绘制外部发光效果
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius + 8, 0, Math.PI * 2);
+    const outerGlow = ctx.createRadialGradient(
+      ball.x,
+      ball.y,
+      ball.radius,
+      ball.x,
+      ball.y,
+      ball.radius + 8
+    );
+    outerGlow.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
+    outerGlow.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    ctx.fillStyle = outerGlow;
+    ctx.fill();
+
+    // 绘制阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+
+    // 绘制主球体
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fillStyle = ball.color;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // 添加高光效果
-    const gradient = ctx.createRadialGradient(
+    
+    // 创建径向渐变
+    const mainGradient = ctx.createRadialGradient(
       ball.x - ball.radius * 0.3,
       ball.y - ball.radius * 0.3,
       0,
@@ -110,9 +159,42 @@
       ball.y,
       ball.radius
     );
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-    gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-    ctx.fillStyle = gradient;
+    mainGradient.addColorStop(0, '#FFF8DC');
+    mainGradient.addColorStop(0.3, '#FFD700');
+    mainGradient.addColorStop(1, '#DAA520');
+    ctx.fillStyle = mainGradient;
+    ctx.fill();
+
+    // 重置阴影
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // 绘制边框
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 添加高光效果
+    ctx.beginPath();
+    ctx.arc(
+      ball.x - ball.radius * 0.35,
+      ball.y - ball.radius * 0.35,
+      ball.radius * 0.4,
+      0,
+      Math.PI * 2
+    );
+    const highlight = ctx.createRadialGradient(
+      ball.x - ball.radius * 0.35,
+      ball.y - ball.radius * 0.35,
+      0,
+      ball.x - ball.radius * 0.35,
+      ball.y - ball.radius * 0.35,
+      ball.radius * 0.4
+    );
+    highlight.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = highlight;
     ctx.fill();
   }
 
