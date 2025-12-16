@@ -1,0 +1,153 @@
+---
+// 悬浮控制面板组件
+---
+
+<div class="control-panel">
+  <h3>控制面板</h3>
+
+  <div class="control-group">
+    <label for="gravity">重力: <span id="gravityValue">0.5</span></label>
+    <input type="range" id="gravity" min="0" max="2" step="0.01" value="0.5">
+  </div>
+
+  <div class="control-group">
+    <label for="rotationSpeed">转速: <span id="rotationSpeedValue">0.01</span></label>
+    <input type="range" id="rotationSpeed" min="-0.1" max="0.1" step="0.001" value="0.01">
+  </div>
+
+  <div class="control-group">
+    <label for="ballColor">小球颜色:</label>
+    <input type="color" id="ballColor" value="#FFD700">
+  </div>
+</div>
+
+<style>
+  .control-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: 1000;
+    min-width: 250px;
+  }
+
+  .control-panel h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .control-group {
+    margin-bottom: 15px;
+  }
+
+  .control-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-size: 14px;
+  }
+
+  .control-group label span {
+    color: #667eea;
+    font-weight: 500;
+  }
+
+  .control-group input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .control-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .control-group input[type="range"]::-webkit-slider-thumb:hover {
+    background: #764ba2;
+  }
+
+  .control-group input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    transition: background 0.3s;
+  }
+
+  .control-group input[type="range"]::-moz-range-thumb:hover {
+    background: #764ba2;
+  }
+
+  .control-group input[type="color"] {
+    width: 100%;
+    height: 40px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+
+  .control-group input[type="color"]:hover {
+    border-color: #667eea;
+  }
+</style>
+
+<script>
+  // 获取控制元素
+  const gravitySlider = document.getElementById('gravity');
+  const gravityValueSpan = document.getElementById('gravityValue');
+  const rotationSpeedSlider = document.getElementById('rotationSpeed');
+  const rotationSpeedValueSpan = document.getElementById('rotationSpeedValue');
+  const ballColorPicker = document.getElementById('ballColor');
+
+  // 重力滑块事件
+  gravitySlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    gravityValueSpan.textContent = value.toFixed(2);
+
+    // 触发自定义事件，通知 BouncingBall 组件更新重力
+    window.dispatchEvent(new CustomEvent('updateGravity', {
+      detail: { gravity: value }
+    }));
+  });
+
+  // 转速滑块事件
+  rotationSpeedSlider.addEventListener('input', (e) => {
+    const value = parseFloat(e.target.value);
+    rotationSpeedValueSpan.textContent = value.toFixed(3);
+
+    // 触发自定义事件，通知 BouncingBall 组件更新转速
+    window.dispatchEvent(new CustomEvent('updateRotationSpeed', {
+      detail: { rotationSpeed: value }
+    }));
+  });
+
+  // 颜色选择器事件
+  ballColorPicker.addEventListener('input', (e) => {
+    const color = e.target.value;
+
+    // 触发自定义事件，通知 BouncingBall 组件更新小球颜色
+    window.dispatchEvent(new CustomEvent('updateBallColor', {
+      detail: { color: color }
+    }));
+  });
+</script>
